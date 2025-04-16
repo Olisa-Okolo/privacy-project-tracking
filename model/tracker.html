@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tracker Prediction Dashboard</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        #input-form { margin-bottom: 20px; }
+        #visualization { margin-top: 30px; }
+        .bar { fill: steelblue; }
+        .bar:hover { fill: orange; }
+    </style>
+</head>
+<body>
+    <h1>Website Tracker Predictor</h1>
+    
+    <!-- Input Form -->
+    <div id="input-form">
+        <h2>Enter Website Features</h2>
+        <form id="prediction-form">
+            <label>popularity: <input type="number" step="0.00000000000000001" name="popularity" value="0" required></label><br>
+            <label>cookies: <input type="number" step="0.00000000000000001" name="cookies" value="0" required></label><br>
+            <label>bad_qs: <input type="number" step="0.00000000000000001" name="bad_qs" value="0" required></label><br>
+            <label>tracked: <input type="number" step="0.00000000000000001" name="tracked" value="0" required></label><br>
+            <label>https: <input type="number" step="0.00000000000000001" name="https" value="0" required></label><br>
+            <label>requests: <input type="number" step="0.00000000000000001" name="requests" value="0" required></label><br>
+            <label>requests_tracking: <input type="number" step="0.00000000000000001" name="requests_tracking" value="0" required></label><br>
+            <label>content_length: <input type="number" step="0.00000000000000001" name="content_length" value="0" required></label><br>
+            <label>requests_failed: <input type="number" step="0.00000000000000001" name="requests_failed" value="0" required></label><br>
+            <label>has_blocking: <input type="number" step="0.00000000000000001" name="has_blocking" value="0" required></label><br>
+            <label>script: <input type="number" step="0.00000000000000001" name="script" value="0" required></label><br>
+            <label>iframe: <input type="number" step="0.00000000000000001" name="iframe" value="0" required></label><br>
+            <label>beacon: <input type="number" step="0.00000000000000001" name="beacon" value="0" required></label><br>
+            <label>image: <input type="number" step="0.00000000000000001" name="image" value="0" required></label><br>
+            <label>stylesheet: <input type="number" step="0.00000000000000001" name="stylesheet" value="0" required></label><br>
+            <label>font: <input type="number" step="0.00000000000000001" name="font" value="0" required></label><br>
+            <label>xhr: <input type="number" step="0.00000000000000001" name="xhr" value="0" required></label><br>
+            <label>plugin: <input type="number" step="0.00000000000000001" name="plugin" value="0" required></label><br>
+            <label>media: <input type="number" step="0.00000000000000001" name="media" value="0" required></label><br>
+            <label>referer_leaked: <input type="number" step="0.00000000000000001" name="referer_leaked" value="0" required></label><br>
+            <label>referer_leaked_header: <input type="number" step="0.00000000000000001" name="referer_leaked_header" value="0" required></label><br>
+            <label>referer_leaked_url: <input type="number" step="0.00000000000000001" name="referer_leaked_url" value="0" required></label><br>
+            <label>cookie_samesite_none: <input type="number" step="0.00000000000000001" name="cookie_samesite_none" value="0" required></label><br>
+            <label>t_active: <input type="number" step="0.00000000000000001" name="t_active" value="0" required></label><br>
+            <label>hosts: <input type="number" step="0.00000000000000001" name="hosts" value="0" required></label><br>
+            <label>trackers: <input type="number" step="0.00000000000000001" name="trackers" value="0" required></label><br>
+            <label>companies: <input type="number" step="0.00000000000000001" name="companies" value="0" required></label><br>
+            <label>de: <input type="number" step="1" name="de" value="0" required></label><br>
+            <label>eu: <input type="number" step="1" name="eu" value="0" required></label><br>
+            <label>fr: <input type="number" step="1" name="fr" value="0" required></label><br>
+            <label>global: <input type="number" step="1" name="global" value="0" required></label><br>
+            <label>us: <input type="number" step="1" name="us" value="0" required></label><br>
+            <label>category_Adult: <input type="number" step="1" name="category_Adult" value="0" required></label><br>
+            <label>category_Adult : <input type="number" step="1" name="category_Adult2" value="0" required></label><br>
+            <label>category_Banking: <input type="number" step="1" name="category_Banking" value="0" required></label><br>
+            <label>category_Business: <input type="number" step="1" name="category_Business" value="0" required></label><br>
+            <label>category_E-Commerce: <input type="number" step="1" name="category_E-Commerce" value="0" required></label><br>
+            <label>category_E-Commerce: <input type="number" step="1" name="category_E-Commerce2" value="0" required></label><br>
+            <label>category_E-commerce: <input type="number" step="1" name="category_E-Commerce3" value="0" required></label><br>
+            <label>category_Entertainment: <input type="number" step="1" name="category_Entertainment" value="0" required></label><br>
+            <label>category_Entertainment: <input type="number" step="1" name="category_Entertainment2" value="0" required></label><br>
+            <label>category_Government: <input type="number" step="1" name="category_Government" value="0" required></label><br>
+            <label>category_Health: <input type="number" step="1" name="category_Health" value="0" required></label><br>
+            <label>category_News and Portals: <input type="number" step="1" name="category_News and Portals" value="0" required></label><br>
+            <label>category_Political: <input type="number" step="1" name="category_Political" value="0" required></label><br>
+            <label>category_Recreation: <input type="number" step="1" name="category_Recreation" value="0" required></label><br>
+            <label>category_Reference: <input type="number" step="1" name="category_Reference" value="0" required></label><br>
+            <label>category_Uncategorized: <input type="number" step="1" name="category_Uncategorized" value="0" required></label><br>
+            
+            
+
+            <button type="submit">Predict Trackers</button>
+        </form>
+    </div>
+
+    <!-- Prediction Results -->
+    <div id="prediction-result">
+        <h2>Detected Trackers</h2>
+        <ul id="tracker-list"></ul>
+    </div>
+
+    <!-- D3 Visualization -->
+    <div id="visualization">
+        <h2>Tracker Statistics</h2>
+        <svg id="chart" width="600" height="400"></svg>
+    </div>
+
+    <script>
+        // Submit form to API
+        document.getElementById('prediction-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const features = [
+                parseFloat(formData.get('popularity')),
+                parseFloat(formData.get('cookies')),
+                parseFloat(formData.get('bad_qs')),
+                parseFloat(formData.get('tracked')),
+                parseFloat(formData.get('https')),
+                parseFloat(formData.get('requests')),
+                parseFloat(formData.get('requests_tracking')),
+                parseFloat(formData.get('content_length')),
+                parseFloat(formData.get('requests_failed')),
+                parseFloat(formData.get('has_blocking')),
+                parseFloat(formData.get('script')),
+                parseFloat(formData.get('iframe')),
+                parseFloat(formData.get('beacon')),
+                parseFloat(formData.get('image')),
+                parseFloat(formData.get('stylesheet')),
+                parseFloat(formData.get('font')),
+                parseFloat(formData.get('xhr')),
+                parseFloat(formData.get('plugin')),
+                parseFloat(formData.get('media')),
+                parseFloat(formData.get('referer_leaked')),
+                parseFloat(formData.get('referer_leaked_header')),
+                parseFloat(formData.get('referer_leaked_url')),
+                parseFloat(formData.get('cookie_samesite_none')),
+                parseFloat(formData.get('t_active')),
+                parseFloat(formData.get('hosts')),
+                parseFloat(formData.get('trackers')),
+                parseFloat(formData.get('companies')),
+                parseFloat(formData.get('de')),
+                parseFloat(formData.get('eu')),
+                parseFloat(formData.get('fr')),
+                parseFloat(formData.get('global')),
+                parseFloat(formData.get('us')),
+                parseFloat(formData.get('category_Adult')),
+                parseFloat(formData.get('category_Adult2')),
+                parseFloat(formData.get('category_Banking')),
+                parseFloat(formData.get('category_Business')),
+                parseFloat(formData.get('category_E-Commerce')),
+                parseFloat(formData.get('category_E-Commerce2')),
+                parseFloat(formData.get('category_E-Commerce3')),
+                parseFloat(formData.get('category_Entertainment')),
+                parseFloat(formData.get('category_Entertainment2')),
+                parseFloat(formData.get('category_Government')),
+                parseFloat(formData.get('category_Health')),
+                parseFloat(formData.get('category_News and Portals')),
+                parseFloat(formData.get('category_Political')),
+                parseFloat(formData.get('category_Recreation')),
+                parseFloat(formData.get('category_Reference')),
+                parseFloat(formData.get('category_Uncategorized'))
+            ];
+
+
+            try {
+                // Call Flask API
+                const response = await fetch('http://localhost:5000/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ features: [features] })  // Wrap in array for batch
+                });
+
+                const data = await response.json();
+                const trackers = data.trackers;  // Get first prediction
+                
+                // Display trackers
+                const trackerList = document.getElementById('tracker-list');
+                trackerList.innerHTML = trackers.map(t => `<li>${t}</li>`).join('');
+                console.log(trackers)
+                // Load and visualize CSV data
+                //loadTrackerData(trackers);
+            } catch (error) {
+                console.error("API Error:", error);
+            }
+
+            // Load CSV and visualize with D3
+        async function loadTrackerData(trackers) {
+            const response = await fetch('tracker_data.csv');  // Replace with your CSV path
+            const csvText = await response.text();
+            const data = d3.csvParse(csvText);
+            
+            // Filter data for predicted trackers
+            const filteredData = data.filter(d => trackers.includes(parseInt(d.tracker_id)));
+            
+            // Create D3 bar chart
+            const svg = d3.select("#chart");
+            svg.selectAll("*").remove();  // Clear previous chart
+            
+            const margin = { top: 20, right: 20, bottom: 40, left: 60 };
+            const width = 600 - margin.left - margin.right;
+            const height = 400 - margin.top - margin.bottom;
+            
+            const x = d3.scaleBand()
+                .domain(filteredData.map(d => d.tracker_name))
+                .range([0, width])
+                .padding(0.2);
+            
+            const y = d3.scaleLinear()
+                .domain([0, d3.max(filteredData, d => +d.usage_count)])
+                .range([height, 0]);
+            
+            const chart = svg.append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+            
+            chart.selectAll(".bar")
+                .data(filteredData)
+                .enter().append("rect")
+                .attr("class", "bar")
+                .attr("x", d => x(d.tracker_name))
+                .attr("y", d => y(+d.usage_count))
+                .attr("width", x.bandwidth())
+                .attr("height", d => height - y(+d.usage_count));
+            
+            chart.append("g")
+                .attr("transform", `translate(0,${height})`)
+                .call(d3.axisBottom(x));
+            
+            chart.append("g")
+                .call(d3.axisLeft(y));
+        }
+        });
+
+        
+    </script>
+</body>
+</html>
