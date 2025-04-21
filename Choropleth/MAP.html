@@ -83,7 +83,7 @@
     // Load GeoJSON + CSV
     const [world, data] = await Promise.all([
       d3.json("data/world_countries.json"),
-      d3.csv("data/final_updated_sites_stripped.csv")
+      d3.csv("data/site_tracker_data.csv")
     ]);
 
     // Populate category dropdown
