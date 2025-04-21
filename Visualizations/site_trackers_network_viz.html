@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Site Trackers Network Visualization</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .tracking-network-visualization {
+            width: 100%;
+        }
+        .controls {
+            background-color: white;
+            padding: 16px;
+            margin-bottom: 16px;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+        }
+        h2 {
+            font-size: 1.25rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        p.description {
+            font-size: 0.875rem;
+            color: #666;
+            margin-bottom: 16px;
+        }
+        .flex {
+            display: flex;
+        }
+        .flex-wrap {
+            flex-wrap: wrap;
+        }
+        .gap-3 {
+            gap: 12px;
+        }
+        .gap-4 {
+            gap: 16px;
+        }
+        .mb-4 {
+            margin-bottom: 16px;
+        }
+        .mt-6 {
+            margin-top: 24px;
+        }
+        button {
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 0.875rem;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.3s;
+        }
+        button.pause {
+            background-color: #ef4444;
+            color: white;
+        }
+        button.resume {
+            background-color: #3b82f6;
+            color: white;
+        }
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+        }
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 4px;
+        }
+        .legend-line {
+            width: 24px;
+            height: 2px;
+            margin-right: 4px;
+            background-color: #333;
+        }
+        .legend-line.dashed {
+            border-top: 2px dashed #333;
+            background-color: transparent;
+            height: 0;
+        }
+        .legend-text {
+            font-size: 0.75rem;
+        }
+        .visualization-container {
+            display: flex;
+            gap: 16px;
+        }
+        .svg-container {
+            flex: 1;
+            position: relative;
+        }
+        svg {
+            border: 1px solid #e5e5e5;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+            background-color: white;
+            width: 100%;
+            height: 600px;
+        }
+        .info-panel {
+            width: 320px;
+            padding: 16px;
+            background-color: white;
+            border: 1px solid #e5e5e5;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+            height: fit-content;
+        }
+        .info-panel h3 {
+            font-weight: bold;
+            font-size: 1.125rem;
+            margin-top: 0;
+            margin-bottom: 16px;
+        }
+        .info-panel .type {
+            margin-left: 8px;
+            font-size: 0.75rem;
+            font-weight: normal;
+            color: #6b7280;
+        }
+        .stats-box {
+            margin-top: 16px;
+            margin-bottom: 16px;
+            padding: 12px;
+            border-radius: 6px;
+        }
+        .company-stats {
+            background-color: #fef2f2;
+            border: 1px solid #fee2e2;
+        }
+        .tracker-stats {
+            background-color: #eff6ff;
+            border: 1px solid #dbeafe;
+        }
+        .website-stats {
+            background-color: #ecfdf5;
+            border: 1px solid #d1fae5;
+        }
+        .impact-box {
+            background-color: #fefce8;
+            border: 1px solid #fef3c7;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+        }
+        .impact-title {
+            font-weight: 500;
+            color: #92400e;
+        }
+        .impact-text {
+            margin-top: 8px;
+            font-size: 0.875rem;
+            color: #92400e;
+        }
+        .list-title {
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        .item-list {
+            max-height: 160px;
+            overflow-y: auto;
+            font-size: 0.875rem;
+        }
+        .list-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+        .hint-text {
+            text-align: center;
+            font-size: 0.875rem;
+            color: #6b7280;
+            font-style: italic;
+        }
+        .space-y-4 > * + * {
+            margin-top: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="tracking-network-visualization">
+            <div class="controls">
+                <h2>Top 10 Websites and Their Tracking Relationships</h2>
+                <p class="description">
+                    Based on Sites Trackers Data Jan 2025 - showing relationships between websites (green), 
+                    trackers (blue), and companies (red). Click on any node to explore connections.
+                </p>
+                
+                <div class="flex flex-wrap gap-3 mb-4">
+                    <button id="simulation-toggle" class="pause">Pause Simulation</button>
+                </div>
+                
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #e74c3c;"></div>
+                        <span class="legend-text">Companies</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #3498db;"></div>
+                        <span class="legend-text">Trackers</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #2ecc71;"></div>
+                        <span class="legend-text">Websites</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-line"></div>
+                        <span class="legend-text">Ownership</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-line dashed"></div>
+                        <span class="legend-text">Tracking</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="visualization-container">
+                <!-- Main visualization -->
+                <div class="svg-container">
+                    <svg id="network-svg"></svg>
+                </div>
+                
+                <!-- Information panel (will be populated by JS) -->
+                <div id="info-panel" class="info-panel" style="display: none;">
+                    <!-- Content will be added dynamically -->
+                </div>
+            </div>
+            
+            <div class="mt-6 hint-text" id="hint-text">
+                <p>Click on any node in the visualization to see detailed information about websites, trackers, and companies.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample data (from your React code)
+        const trackingData = {
+            nodes: [
+                // Company nodes
+                { id: "google", name: "Google", type: "company", size: 25 },
+                { id: "meta", name: "Meta", type: "company", size: 22 },
+                { id: "adobe", name: "Adobe", type: "company", size: 18 },
+                { id: "amazon", name: "Amazon", type: "company", size: 20 },
+                { id: "microsoft", name: "Microsoft", type: "company", size: 18 },
+                { id: "twitter", name: "Twitter", type: "company", size: 16 },
+                { id: "tiktok", name: "TikTok", type: "company", size: 15 },
+                
+                // Tracker nodes
+                { id: "google_analytics", name: "Google Analytics", type: "tracker", parent: "google", size: 14, prevalence: 0.85, tracked: 0.72 },
+                { id: "doubleclick", name: "DoubleClick", type: "tracker", parent: "google", size: 13, prevalence: 0.68, tracked: 0.61 },
+                { id: "google_tag_manager", name: "Google Tag Manager", type: "tracker", parent: "google", size: 13, prevalence: 0.73, tracked: 0.65 },
+                { id: "google_adsense", name: "Google AdSense", type: "tracker", parent: "google", size: 12, prevalence: 0.64, tracked: 0.58 },
+                { id: "google_fonts", name: "Google Fonts", type: "tracker", parent: "google", size: 11, prevalence: 0.48, tracked: 0.38 },
+                { id: "facebook_pixel", name: "Facebook Pixel", type: "tracker", parent: "meta", size: 13, prevalence: 0.72, tracked: 0.67 },
+                { id: "facebook_connect", name: "Facebook Connect", type: "tracker", parent: "meta", size: 12, prevalence: 0.58, tracked: 0.52 },
+                { id: "instagram_embeds", name: "Instagram Embeds", type: "tracker", parent: "meta", size: 11, prevalence: 0.45, tracked: 0.38 },
+                { id: "adobe_analytics", name: "Adobe Analytics", type: "tracker", parent: "adobe", size: 12, prevalence: 0.41, tracked: 0.36 },
+                { id: "adobe_typekit", name: "Adobe Typekit", type: "tracker", parent: "adobe", size: 11, prevalence: 0.27, tracked: 0.18 },
+                { id: "amazon_ads", name: "Amazon Ads", type: "tracker", parent: "amazon", size: 12, prevalence: 0.35, tracked: 0.31 },
+                { id: "amazon_associates", name: "Amazon Associates", type: "tracker", parent: "amazon", size: 11, prevalence: 0.28, tracked: 0.22 },
+                { id: "microsoft_clarity", name: "Microsoft Clarity", type: "tracker", parent: "microsoft", size: 11, prevalence: 0.38, tracked: 0.32 },
+                { id: "linkedin_ads", name: "LinkedIn Ads", type: "tracker", parent: "microsoft", size: 10, prevalence: 0.32, tracked: 0.28 },
+                { id: "twitter_button", name: "Twitter Button", type: "tracker", parent: "twitter", size: 11, prevalence: 0.40, tracked: 0.33 },
+                { id: "twitter_analytics", name: "Twitter Analytics", type: "tracker", parent: "twitter", size: 10, prevalence: 0.34, tracked: 0.28 },
+                { id: "tiktok_pixel", name: "TikTok Pixel", type: "tracker", parent: "tiktok", size: 11, prevalence: 0.29, tracked: 0.25 },
+                
+                // Popular websites
+                { id: "google.com", name: "google.com", type: "website", category: "search", size: 8 },
+                { id: "youtube.com", name: "youtube.com", type: "website", category: "video", size: 8 },
+                { id: "facebook.com", name: "facebook.com", type: "website", category: "social", size: 8 },
+                { id: "amazon.com", name: "amazon.com", type: "website", category: "ecommerce", size: 8 },
+                { id: "twitter.com", name: "twitter.com", type: "website", category: "social", size: 8 },
+                { id: "instagram.com", name: "instagram.com", type: "website", category: "social", size: 8 },
+                { id: "reddit.com", name: "reddit.com", type: "website", category: "social", size: 8 },
+                { id: "nytimes.com", name: "nytimes.com", type: "website", category: "news", size: 8 },
+                { id: "cnn.com", name: "cnn.com", type: "website", category: "news", size: 8 },
+                { id: "linkedin.com", name: "linkedin.com", type: "website", category: "professional", size: 8 }
+            ],
+            links: [
+                // Ownership links (trackers to companies)
+                { source: "google_analytics", target: "google", type: "owned_by" },
+                { source: "doubleclick", target: "google", type: "owned_by" },
+                { source: "google_tag_manager", target: "google", type: "owned_by" },
+                { source: "google_adsense", target: "google", type: "owned_by" },
+                { source: "google_fonts", target: "google", type: "owned_by" },
+                { source: "facebook_pixel", target: "meta", type: "owned_by" },
+                { source: "facebook_connect", target: "meta", type: "owned_by" },
+                { source: "instagram_embeds", target: "meta", type: "owned_by" },
+                { source: "adobe_analytics", target: "adobe", type: "owned_by" },
+                { source: "adobe_typekit", target: "adobe", type: "owned_by" },
+                { source: "amazon_ads", target: "amazon", type: "owned_by" },
+                { source: "amazon_associates", target: "amazon", type: "owned_by" },
+                { source: "microsoft_clarity", target: "microsoft", type: "owned_by" },
+                { source: "linkedin_ads", target: "microsoft", type: "owned_by" },
+                { source: "twitter_button", target: "twitter", type: "owned_by" },
+                { source: "twitter_analytics", target: "twitter", type: "owned_by" },
+                { source: "tiktok_pixel", target: "tiktok", type: "owned_by" },
+                
+                // Tracking links (websites to trackers)
+                // Google
+                { source: "google.com", target: "google_analytics", type: "has_tracker" },
+                { source: "google.com", target: "doubleclick", type: "has_tracker" },
+                // YouTube
+                { source: "youtube.com", target: "google_analytics", type: "has_tracker" },
+                { source: "youtube.com", target: "doubleclick", type: "has_tracker" },
+                { source: "youtube.com", target: "google_tag_manager", type: "has_tracker" },
+                // Facebook
+                { source: "facebook.com", target: "facebook_pixel", type: "has_tracker" },
+                { source: "facebook.com", target: "facebook_connect", type: "has_tracker" },
+                // Amazon
+                { source: "amazon.com", target: "amazon_ads", type: "has_tracker" },
+                { source: "amazon.com", target: "amazon_associates", type: "has_tracker" },
+                { source: "amazon.com", target: "google_analytics", type: "has_tracker" },
+                // Twitter
+                { source: "twitter.com", target: "twitter_button", type: "has_tracker" },
+                { source: "twitter.com", target: "twitter_analytics", type: "has_tracker" },
+                { source: "twitter.com", target: "google_analytics", type: "has_tracker" },
+                // Instagram
+                { source: "instagram.com", target: "facebook_pixel", type: "has_tracker" },
+                { source: "instagram.com", target: "instagram_embeds", type: "has_tracker" },
+                // Reddit
+                { source: "reddit.com", target: "google_analytics", type: "has_tracker" },
+                { source: "reddit.com", target: "amazon_ads", type: "has_tracker" },
+                { source: "reddit.com", target: "facebook_pixel", type: "has_tracker" },
+                // NY Times
+                { source: "nytimes.com", target: "google_analytics", type: "has_tracker" },
+                { source: "nytimes.com", target: "doubleclick", type: "has_tracker" },
+                { source: "nytimes.com", target: "facebook_pixel", type: "has_tracker" },
+                { source: "nytimes.com", target: "twitter_button", type: "has_tracker" },
+                // CNN
+                { source: "cnn.com", target: "google_analytics", type: "has_tracker" },
+                { source: "cnn.com", target: "google_tag_manager", type: "has_tracker" },
+                { source: "cnn.com", target: "facebook_pixel", type: "has_tracker" },
+                { source: "cnn.com", target: "twitter_button", type: "has_tracker" },
+                { source: "cnn.com", target: "amazon_ads", type: "has_tracker" },
+                // LinkedIn
+                { source: "linkedin.com", target: "google_analytics", type: "has_tracker" },
+                { source: "linkedin.com", target: "linkedin_ads", type: "has_tracker" },
+                { source: "linkedin.com", target: "microsoft_clarity", type: "has_tracker" }
+            ]
+        };
+
+        let selectedNode = null;
+        let highlightedNodes = new Set();
+        let highlightedLinks = new Set();
+        let simulationRunning = true;
+        let simulation;
+
+        // Initialize the visualization
+        function initializeVisualization() {
+            const svg = d3.select("#network-svg");
+            const width = parseInt(svg.style("width") || "800");
+            const height = parseInt(svg.style("height") || "600");
+
+            // Create a group for the visualization
+            const g = svg.append("g");
+
+            // Create zoom behavior
+            const zoom = d3.zoom()
+                .scaleExtent([0.2, 3])
+                .on("zoom", (event) => {
+                    g.attr("transform", event.transform);
+                });
+
+            svg.call(zoom);
+
+            // Create a force simulation
+            simulation = d3.forceSimulation(trackingData.nodes)
+                .force("link", d3.forceLink(trackingData.links)
+                    .id(d => d.id)
+                    .distance(d => {
+                        // Adjust distance based on link type
+                        if (d.type === "owned_by") return 60;
+                        return 100;
+                    })
+                )
+                .force("charge", d3.forceManyBody().strength(-300))
+                .force("center", d3.forceCenter(width / 2, height / 2))
+                .force("x", d3.forceX(width / 2).strength(0.1))
+                .force("y", d3.forceY(height / 2).strength(0.1))
+                .force("collision", d3.forceCollide().radius(d => d.size + 5).strength(0.8));
+
+            // Create links
+            const link = g.append("g")
+                .attr("stroke", "#999")
+                .attr("stroke-opacity", 0.6)
+                .selectAll("line")
+                .data(trackingData.links)
+                .join("line")
+                .attr("stroke-width", d => d.type === "owned_by" ? 2 : 1)
+                .attr("stroke-dasharray", d => d.type === "owned_by" ? "none" : "3,3");
+
+            // Create nodes
+            const node = g.append("g")
+                .selectAll(".node")
+                .data(trackingData.nodes)
+                .join("g")
+                .attr("class", "node")
+                .call(drag(simulation))
+                .on("click", (event, d) => {
+                    event.stopPropagation();
+                    selectNode(d);
+                })
+                .on("dblclick", (event) => {
+                    event.stopPropagation();
+                    selectNode(null); // Unselect on double click
+                });
+
+            // Node circles
+            node.append("circle")
+                .attr("r", d => d.size)
+                .attr("fill", d => {
+                    if (d.type === "company") return "#e74c3c"; // Red for companies
+                    if (d.type === "tracker") return "#3498db"; // Blue for trackers
+                    return "#2ecc71"; // Green for websites
+                })
+                .attr("stroke", "#fff")
+                .attr("stroke-width", 1.5);
+
+            // Node labels
+            node.append("text")
+                .attr("dx", d => d.size + 5)
+                .attr("dy", ".35em")
+                .text(d => d.name)
+                .attr("font-size", 10)
+                .attr("fill", "#333");
+
+            // Add tooltips on hover
+            node.append("title")
+                .text(d => {
+                    if (d.type === "company") {
+                        return `Company: ${d.name}`;
+                    }
+                    if (d.type === "tracker") {
+                        return `Tracker: ${d.name}\nPresent on ${Math.round(d.prevalence * 100)}% of sites\nTracking detected on ${Math.round(d.tracked * 100)}% of sites`;
+                    }
+                    return `Website: ${d.name} (${d.category})`;
+                });
+
+            // Update positions on each tick
+            simulation.on("tick", () => {
+                link
+                    .attr("x1", d => d.source.x)
+                    .attr("y1", d => d.source.y)
+                    .attr("x2", d => d.target.x)
+                    .attr("y2", d => d.target.y);
+
+                node.attr("transform", d => `translate(${d.x},${d.y})`);
+            });
+
+            // Clear selection when clicking on background
+            svg.on("click", () => {
+                selectNode(null);
+            });
+
+            // Run simulation for a bit then stop
+            setTimeout(() => {
+                simulation.alphaTarget(0);
+                simulationRunning = false;
+                document.getElementById("simulation-toggle").classList.remove("pause");
+                document.getElementById("simulation-toggle").classList.add("resume");
+                document.getElementById("simulation-toggle").textContent = "Resume Simulation";
+            }, 2000);
+        }
+
+        // Function to highlight nodes and links related to a selected node
+        function selectNode(selected) {
+            selectedNode = selected;
+            const infoPanel = document.getElementById("info-panel");
+            const hintText = document.getElementById("hint-text");
+
+            if (!selected) {
+                // Reset highlight
+                highlightedNodes = new Set();
+                highlightedLinks = new Set();
+                
+                // Hide info panel
+                infoPanel.style.display = "none";
+                hintText.style.display = "block";
+                
+                // Reset visualization
+                d3.selectAll("line")
+                    .attr("stroke", "#999")
+                    .attr("stroke-opacity", 0.6);
+                
+                d3.selectAll(".node circle")
+                    .attr("stroke", "#fff")
+                    .attr("stroke-width", 1.5);
+                
+                d3.selectAll(".node text")
+                    .attr("fill", "#333")
+                    .attr("font-weight", "normal");
+
+                return;
+            }
+
+            // Find all connected nodes and links
+            const connectedNodes = new Set([selected.id]);
+            const connectedLinks = new Set();
+
+            // For company nodes
+            if (selected.type === "company") {
+                // Find all trackers owned by this company
+                trackingData.links.forEach(l => {
+                    if (l.type === "owned_by" && (typeof l.target === 'object' ? l.target.id : l.target) === selected.id) {
+                        const sourceId = typeof l.source === 'object' ? l.source.id : l.source;
+                        connectedNodes.add(sourceId);
+                        connectedLinks.add(`${sourceId}-${selected.id}`);
+                        
+                        // Find all websites using these trackers
+                        trackingData.links.forEach(l2 => {
+                            if (l2.type === "has_tracker" && (typeof l2.target === 'object' ? l2.target.id : l2.target) === sourceId) {
+                                const l2SourceId = typeof l2.source === 'object' ? l2.source.id : l2.source;
+                                connectedNodes.add(l2SourceId);
+                                connectedLinks.add(`${l2SourceId}-${sourceId}`);
+                            }
+                        });
+                    }
+                });
+            }
+            
+            // For tracker nodes
+            if (selected.type === "tracker") {
+                // Find parent company
+                trackingData.links.forEach(l => {
+                    const sourceId = typeof l.source === 'object' ? l.source.id : l.source;
+                    const targetId = typeof l.target === 'object' ? l.target.id : l.target;
+                    
+                    if (l.type === "owned_by" && sourceId === selected.id) {
+                        connectedNodes.add(targetId);
+                        connectedLinks.add(`${sourceId}-${targetId}`);
+                    }
+                });
+                
+                // Find all websites using this tracker
+                trackingData.links.forEach(l => {
+                    const sourceId = typeof l.source === 'object' ? l.source.id : l.source;
+                    const targetId = typeof l.target === 'object' ? l.target.id : l.target;
+                    
+                    if (l.type === "has_tracker" && targetId === selected.id) {
+                        connectedNodes.add(sourceId);
+                        connectedLinks.add(`${sourceId}-${targetId}`);
+                    }
+                });
+            }
+            
+            // For website nodes
+            if (selected.type === "website") {
+                // Find all trackers on this website
+                const websiteTrackers = new Set();
+                
+                trackingData.links.forEach(l => {
+                    const sourceId = typeof l.source === 'object' ? l.source.id : l.source;
+                    const targetId = typeof l.target === 'object' ? l.target.id : l.target;
+                    
+                    if (l.type === "has_tracker" && sourceId === selected.id) {
+                        connectedNodes.add(targetId);
+                        connectedLinks.add(`${sourceId}-${targetId}`);
+                        websiteTrackers.add(targetId);
+                    }
+                });
+                
+                // Find parent companies of these trackers
+                trackingData.links.forEach(l => {
+                    const sourceId = typeof l.source === 'object' ? l.source.id : l.source;
+                    const targetId = typeof l.target === 'object' ? l.target.id : l.target;
+                    
+                    if (l.type === "owned_by" && websiteTrackers.has(sourceId)) {
+                        connectedNodes.add(targetId);
+                        connectedLinks.add(`${sourceId}-${targetId}`);
+                    }
+                });
+            }
+
+            highlightedNodes = connectedNodes;
+            highlightedLinks = connectedLinks;
+
+            // Update visualization
+            d3.selectAll("line")
+                .attr("stroke", l => {
+                    const sourceId = typeof l.source === 'object' ? l.source.id : l.source;
+                    const targetId = typeof l.target === 'object' ? l.target.id : l.target;
+                    return connectedLinks.has(`${sourceId}-${targetId}`) ? "#333" : "#ddd";
+                })
+                .attr("stroke-opacity", l => {
+                    const sourceId = typeof l.source === 'object' ? l.source.id : l.source;
+                    const targetId = typeof l.target === 'object' ? l.target.id : l.target;
+                    return connectedLinks.has(`${sourceId}-${targetId}`) ? 1 : 0.2;
+                });
+            
+            d3.selectAll(".node circle")
+                .attr("stroke", d => connectedNodes.has(d.id) ? "#333" : "#ddd")
+                .attr("stroke-width", d => d.id === selected.id ? 3 : 1.5);
+            
+            d3.selectAll(".node text")
+                .attr("fill", d => connectedNodes.has(d.id) ? "#000" : "#999")
+                .attr("font-weight", d => d.id === selected.id ? "bold" : "normal");
+
+            // Show information in the panel
+            updateInfoPanel(selected);
+            infoPanel.style.display = "block";
+            hintText.style.display = "none";
+        }
+
+        // Function to update info panel
+        function updateInfoPanel(node) {
+            const infoPanel = document.getElementById("info-panel");
+            const stats = getNodeStats(node);
+            
+            let html = `
+                <h3>
+                    ${node.name}
+                    <span class="type">${node.type}</span>
+                </h3>
+            `;
+            
+            if (node.type === "company" && stats) {
+                html += `
+                    <div class="space-y-4">
+                        <div class="stats-box company-stats">
+                            <div style="font-weight: 500;">Company Statistics:</div>
+                            <div style="font-size: 0.875rem; margin-top: 4px;">Tracking Technologies: ${stats.trackerCount}</div>
+                            <div style="font-size: 0.875rem;">Present on ${stats.websiteCount} websites</div>
+                        </div>
+                        
+                        <div class="impact-box">
+                            <h4 class="impact-title">Privacy Impact</h4>
+                            <p class="impact-text">
+                                Through its ${stats.trackerCount} tracking technologies, ${node.name} can 
+                                collect and correlate user data across ${stats.websiteCount} different websites, 
+                                creating comprehensive user profiles for advertising and analytics purposes.
+                            </p>
+                        </div>
+                        
+                        <div>
+                            <h4 class="list-title">Owned Trackers:</h4>
+                            <div class="item-list">
+                                ${stats.trackers.map(tracker => `
+                                    <div class="list-item">
+                                        <span>${tracker.name}</span>
+                                        <span style="color: #6b7280;">${Math.round(tracker.prevalence * 100)}% of sites</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            if (node.type === "tracker" && stats) {
+                html += `
+                    <div class="space-y-4">
+                        <div class="stats-box tracker-stats">
+                            <div style="font-weight: 500;">Tracker Statistics:</div>
+                            <div style="font-size: 0.875rem; margin-top: 4px;">
+                                Owned by: ${trackingData.nodes.find(n => n.id === node.parent)?.name || "Unknown"}
+                            </div>
+                            <div style="font-size: 0.875rem;">Present on ${Math.round(node.prevalence * 100)}% of sites</div>
+                            <div style="font-size: 0.875rem;">Tracking detected on ${Math.round(node.tracked * 100)}% of sites</div>
+                        </div>
+                        
+                        <div class="impact-box">
+                            <h4 class="impact-title">Privacy Impact</h4>
+                            <p class="impact-text">
+                                This tracker is present on ${Math.round(node.prevalence * 100)}% of analyzed websites, 
+                                allowing ${trackingData.nodes.find(n => n.id === node.parent)?.name || "its owner"} to build 
+                                detailed profiles of users' browsing habits and preferences across the web.
+                            </p>
+                        </div>
+                        
+                        <div>
+                            <h4 class="list-title">Found on ${stats.websiteCount} websites:</h4>
+                            <div class="item-list">
+                                ${stats.websites.map(website => `
+                                    <div class="list-item">${website.name}</div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            if (node.type === "website" && stats) {
+                html += `
+                    <div class="space-y-4">
+                        <div class="stats-box website-stats">
+                            <div style="font-weight: 500;">Website Statistics:</div>
+                            <div style="font-size: 0.875rem; margin-top: 4px;">Category: ${node.category}</div>
+                            <div style="font-size: 0.875rem;">Trackers: ${stats.trackerCount}</div>
+                            <div style="font-size: 0.875rem;">Companies Collecting Data: ${stats.companyCount}</div>
+                        </div>
+                        
+                        <div class="impact-box">
+                            <h4 class="impact-title">Privacy Impact</h4>
+                            <p class="impact-text">
+                                This website shares your browsing data with ${stats.companyCount} different companies through tracking technologies.
+                                ${stats.companyCount > 3 ? 
+                                    " This high number of trackers increases privacy risks and may impact page load performance." : 
+                                    " Each tracker can collect data about your browsing habits across different sites."}
+                            </p>
+                        </div>
+                        
+                        <div>
+                            <h4 class="list-title">Trackers Present:</h4>
+                            <div class="item-list">
+                                ${stats.trackers.map(tracker => `
+                                    <div class="list-item">
+                                        <span>${tracker.name}</span>
+                                        <span style="color: #6b7280;">
+                                            ${trackingData.nodes.find(n => n.id === tracker.parent)?.name || "Unknown"}
+                                        </span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            infoPanel.innerHTML = html;
+        }
+
+        // Calculate stats for the selected node
+        function getNodeStats(node) {
+            if (!node) return null;
+            
+            if (node.type === 'website') {
+                // Count trackers
+                const trackers = trackingData.links
+                    .filter(link => {
+                        const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+                        return sourceId === node.id && link.type === 'has_tracker';
+                    })
+                    .map(link => {
+                        const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+                        return trackingData.nodes.find(n => n.id === targetId);
+                    });
+                
+                // Get companies
+                const companies = new Set();
+                trackers.forEach(tracker => {
+                    if (tracker && tracker.parent) {
+                        companies.add(tracker.parent);
+                    }
+                });
+                
+                return {
+                    trackerCount: trackers.length,
+                    companyCount: companies.size,
+                    trackers: trackers
+                };
+            }
+            
+            if (node.type === 'tracker') {
+                // Get websites using this tracker
+                const websites = trackingData.links
+                    .filter(link => {
+                        const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+                        return targetId === node.id && link.type === 'has_tracker';
+                    })
+                    .map(link => {
+                        const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+                        return trackingData.nodes.find(n => n.id === sourceId);
+                    });
+                
+                return {
+                    websiteCount: websites.length,
+                    websites: websites
+                };
+            }
+            
+            if (node.type === 'company') {
+                // Get trackers owned by this company
+                const trackers = trackingData.nodes
+                    .filter(n => n.type === 'tracker' && n.parent === node.id);
+                
+                // Get websites using these trackers
+                const websites = new Set();
+                trackingData.links.forEach(link => {
+                    const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+                    const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+                    
+                    // Check if the tracker belongs to this company
+                    const tracker = trackingData.nodes.find(
+                        n => n.id === targetId && n.type === 'tracker' && n.parent === node.id
+                    );
+                    
+                    if (tracker && link.type === 'has_tracker') {
+                        websites.add(sourceId);
+                    }
+                });
+                
+                return {
+                    trackerCount: trackers.length,
+                    websiteCount: websites.size,
+                    trackers: trackers
+                };
+            }
+            
+            return null;
+        }
+
+        // Drag function for nodes
+        function drag(simulation) {
+            function dragstarted(event, d) {
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+            }
+            
+            function dragged(event, d) {
+                d.fx = event.x;
+                d.fy = event.y;
+            }
+            
+            function dragended(event, d) {
+                if (!event.active) simulation.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+            }
+            
+            return d3.drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended);
+        }
+
+        // Toggle simulation
+        function toggleSimulation() {
+            if (simulation) {
+                if (simulationRunning) {
+                    simulation.alphaTarget(0);
+                    document.getElementById("simulation-toggle").classList.remove("pause");
+                    document.getElementById("simulation-toggle").classList.add("resume");
+                    document.getElementById("simulation-toggle").textContent = "Resume Simulation";
+                } else {
+                    simulation.alphaTarget(0.3).restart();
+                    document.getElementById("simulation-toggle").classList.remove("resume");
+                    document.getElementById("simulation-toggle").classList.add("pause");
+                    document.getElementById("simulation-toggle").textContent = "Pause Simulation";
+                }
+                simulationRunning = !simulationRunning;
+            }
+        }
+
+        // Initialize visualization
+        document.addEventListener("DOMContentLoaded", () => {
+            initializeVisualization();
+            document.getElementById("simulation-toggle").addEventListener("click", toggleSimulation);
+        });
+    </script>
+</body>
+</html>

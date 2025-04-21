@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Tracking by Country</title>
+    <style>
+        /* Base styles */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header styles */
+        .header {
+            background-color: #fff;
+            padding: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .title {
+            font-size: 1.25rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+        .control-group {
+            margin-bottom: 1rem;
+        }
+        .label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #4a5568;
+            margin-bottom: 0.25rem;
+        }
+        .select {
+            display: block;
+            width: 100%;
+            max-width: 300px;
+            padding: 0.5rem;
+            border: 1px solid #cbd5e0;
+            border-radius: 0.375rem;
+        }
+
+        /* Color scale legend */
+        .legend-title {
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+        .color-scale {
+            display: flex;
+            height: 1.5rem;
+        }
+        .color-step {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: white;
+        }
+
+        /* Map content area */
+        .map-container {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+        .country-grid {
+            padding: 1rem;
+            display: flex;
+            flex-wrap: wrap;
+            overflow: auto;
+            max-height: calc(100vh - 200px);
+        }
+        .country-card {
+            margin: 0.5rem;
+            padding: 0.75rem;
+            border-radius: 0.375rem;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            width: 256px;
+        }
+        .country-name {
+            font-weight: bold;
+            color: white;
+        }
+        .country-stat {
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+            color: white;
+        }
+
+        /* Tooltip */
+        .tooltip {
+            position: absolute;
+            bottom: 1rem;
+            right: 1rem;
+            background-color: white;
+            padding: 1rem;
+            border-radius: 0.375rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            border: 1px solid #e2e8f0;
+            width: 18rem;
+            display: none;
+        }
+        .tooltip-title {
+            font-weight: bold;
+            font-size: 1.125rem;
+        }
+        .tooltip-content {
+            margin-top: 0.5rem;
+        }
+        .tooltip-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 0.25rem;
+        }
+        .tooltip-label {
+            color: #718096;
+        }
+        .tooltip-value {
+            font-weight: 500;
+        }
+
+        /* Footer */
+        .footer {
+            background-color: #f7fafc;
+            padding: 0.75rem;
+            border-top: 1px solid #e2e8f0;
+            text-align: center;
+            font-size: 0.875rem;
+            color: #718096;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2 class="title">Web Tracking by Country</h2>
+
+            <div class="control-group">
+                <label class="label" for="metric-select">Metric:</label>
+                <select id="metric-select" class="select">
+                    <option value="avgTrackers">Average Trackers per Site</option>
+                    <option value="avgTrackedPercent">Tracking Prevalence (%)</option>
+                </select>
+            </div>
+
+            <div class="legend-container">
+                <div class="legend-title" id="legend-title">Average Trackers per Site:</div>
+                <div class="color-scale" id="color-scale">
+                    <!-- Color scale steps will be added here by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <div class="map-container">
+            <div class="country-grid" id="country-grid">
+                <!-- Country cards will be added here by JavaScript -->
+            </div>
+
+            <div class="tooltip" id="tooltip">
+                <h3 class="tooltip-title" id="tooltip-title"></h3>
+                <div class="tooltip-content">
+                    <div class="tooltip-row">
+                        <span class="tooltip-label">Sites analyzed:</span>
+                        <span class="tooltip-value" id="tooltip-sites"></span>
+                    </div>
+                    <div class="tooltip-row">
+                        <span class="tooltip-label">Average trackers per site:</span>
+                        <span class="tooltip-value" id="tooltip-trackers"></span>
+                    </div>
+                    <div class="tooltip-row">
+                        <span class="tooltip-label">Tracking prevalence:</span>
+                        <span class="tooltip-value" id="tooltip-prevalence"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            Sample visualization based on WhoTracks.me dataset. In a full implementation, this would display an interactive world map.
+        </div>
+    </div>
+
+    <script>
+        // Country tracking data
+        const countryTrackingData = [
+            { country: "US", code: "USA", siteCount: 2572, avgTrackers: 6.929760466587995, avgTrackedPercent: 0.24 },
+            { country: "LU", code: "LUX", siteCount: 44, avgTrackers: 3.6952304859890885, avgTrackedPercent: 0.15 },
+            { country: "CY", code: "CYP", siteCount: 21, avgTrackers: 5.090398288047119, avgTrackedPercent: 0.20 },
+            { country: "CZ", code: "CZE", siteCount: 44, avgTrackers: 4.96761236056832, avgTrackedPercent: 0.19 },
+            { country: "CA", code: "CAN", siteCount: 165, avgTrackers: 6.3077119877759085, avgTrackedPercent: 0.22 },
+            { country: "CN", code: "CHN", siteCount: 101, avgTrackers: 4.1577620703116605, avgTrackedPercent: 0.18 },
+            { country: "IS", code: "ISL", siteCount: 552, avgTrackers: 4.660286413245625, avgTrackedPercent: 0.19 },
+            { country: "JP", code: "JPN", siteCount: 163, avgTrackers: 7.130900896716959, avgTrackedPercent: 0.26 },
+            { country: "NL", code: "NLD", siteCount: 77, avgTrackers: 4.909527718514581, avgTrackedPercent: 0.19 },
+            { country: "GB", code: "GBR", siteCount: 396, avgTrackers: 6.991700296047466, avgTrackedPercent: 0.24 },
+            { country: "DE", code: "DEU", siteCount: 159, avgTrackers: 5.0162897782824, avgTrackedPercent: 0.20 },
+            { country: "HK", code: "HKG", siteCount: 13, avgTrackers: 5.037308493735339, avgTrackedPercent: 0.20 },
+            { country: "ES", code: "ESP", siteCount: 70, avgTrackers: 7.650307014203752, avgTrackedPercent: 0.28 },
+            { country: "AU", code: "AUS", siteCount: 40, avgTrackers: 6.261702582121699, avgTrackedPercent: 0.23 },
+            { country: "FR", code: "FRA", siteCount: 355, avgTrackers: 5.6797182826858625, avgTrackedPercent: 0.21 },
+            { country: "SE", code: "SWE", siteCount: 37, avgTrackers: 5.8169845449542406, avgTrackedPercent: 0.22 },
+            { country: "RU", code: "RUS", siteCount: 29, avgTrackers: 5.62237322675866, avgTrackedPercent: 0.21 },
+            { country: "SG", code: "SGP", siteCount: 20, avgTrackers: 6.685409433306015, avgTrackedPercent: 0.24 },
+            { country: "KN", code: "KNA", siteCount: 93, avgTrackers: 4.40917501667358, avgTrackedPercent: 0.18 },
+            { country: "BS", code: "BHS", siteCount: 92, avgTrackers: 4.122527426063918, avgTrackedPercent: 0.17 },
+            { country: "SC", code: "SYC", siteCount: 12, avgTrackers: 6.139123143570344, avgTrackedPercent: 0.22 },
+            { country: "BR", code: "BRA", siteCount: 9, avgTrackers: 5.893561503968207, avgTrackedPercent: 0.22 },
+            { country: "AT", code: "AUT", siteCount: 27, avgTrackers: 6.474618524627611, avgTrackedPercent: 0.23 },
+            { country: "NZ", code: "NZL", siteCount: 11, avgTrackers: 5.8756179156030734, avgTrackedPercent: 0.22 },
+            { country: "KR", code: "KOR", siteCount: 14, avgTrackers: 5.247194661683205, avgTrackedPercent: 0.20 },
+            { country: "ID", code: "IDN", siteCount: 8, avgTrackers: 5.795936446901663, avgTrackedPercent: 0.21 },
+            { country: "PL", code: "POL", siteCount: 30, avgTrackers: 6.264065946422104, avgTrackedPercent: 0.23 },
+            { country: "DK", code: "DNK", siteCount: 16, avgTrackers: 5.099975755394724, avgTrackedPercent: 0.20 },
+            { country: "TW", code: "TWN", siteCount: 10, avgTrackers: 6.698928114168576, avgTrackedPercent: 0.24 },
+            { country: "TR", code: "TUR", siteCount: 19, avgTrackers: 7.574506761368608, avgTrackedPercent: 0.27 },
+            { country: "UA", code: "UKR", siteCount: 17, avgTrackers: 5.119451382975366, avgTrackedPercent: 0.20 },
+            { country: "IN", code: "IND", siteCount: 44, avgTrackers: 6.224201366615171, avgTrackedPercent: 0.23 },
+            { country: "UK", code: "GBR", siteCount: 36, avgTrackers: 7.603921798405164, avgTrackedPercent: 0.28 },
+            { country: "PA", code: "PAN", siteCount: 22, avgTrackers: 3.7964179461750955, avgTrackedPercent: 0.16 },
+            { country: "CH", code: "CHE", siteCount: 35, avgTrackers: 6.147972247593156, avgTrackedPercent: 0.22 },
+            { country: "SI", code: "SVN", siteCount: 8, avgTrackers: 5.792149913635121, avgTrackedPercent: 0.21 },
+            { country: "BG", code: "BGR", siteCount: 9, avgTrackers: 3.7177250865458285, avgTrackedPercent: 0.16 },
+            { country: "TH", code: "THA", siteCount: 5, avgTrackers: 5.172483558044335, avgTrackedPercent: 0.20 },
+            { country: "GI", code: "GIB", siteCount: 7, avgTrackers: 6.08405473192744, avgTrackedPercent: 0.22 },
+            { country: "NO", code: "NOR", siteCount: 6, avgTrackers: 4.393518500387011, avgTrackedPercent: 0.18 },
+            { country: "IL", code: "ISR", siteCount: 8, avgTrackers: 9.348495283591493, avgTrackedPercent: 0.30 },
+            { country: "IT", code: "ITA", siteCount: 27, avgTrackers: 7.907131136389039, avgTrackedPercent: 0.29 },
+            { country: "IE", code: "IRL", siteCount: 13, avgTrackers: 4.685601947751234, avgTrackedPercent: 0.19 },
+            { country: "RO", code: "ROU", siteCount: 6, avgTrackers: 4.125284148962257, avgTrackedPercent: 0.17 },
+            { country: "AR", code: "ARG", siteCount: 5, avgTrackers: 4.9015786155988526, avgTrackedPercent: 0.19 },
+            { country: "BE", code: "BEL", siteCount: 13, avgTrackers: 5.688109059655541, avgTrackedPercent: 0.21 },
+            { country: "RS", code: "SRB", siteCount: 6, avgTrackers: 7.378600709225517, avgTrackedPercent: 0.27 },
+            { country: "AE", code: "ARE", siteCount: 6, avgTrackers: 5.750964096593684, avgTrackedPercent: 0.21 },
+            { country: "FI", code: "FIN", siteCount: 9, avgTrackers: 4.713313954572304, avgTrackedPercent: 0.19 },
+            { country: "HU", code: "HUN", siteCount: 9, avgTrackers: 5.20556971282062, avgTrackedPercent: 0.20 }
+        ];
+
+        // Current visualization state
+        let currentMetric = 'avgTrackers';
+        let hoveredCountry = null;
+
+        // DOM elements
+        const metricSelect = document.getElementById('metric-select');
+        const legendTitle = document.getElementById('legend-title');
+        const colorScale = document.getElementById('color-scale');
+        const countryGrid = document.getElementById('country-grid');
+        const tooltip = document.getElementById('tooltip');
+        const tooltipTitle = document.getElementById('tooltip-title');
+        const tooltipSites = document.getElementById('tooltip-sites');
+        const tooltipTrackers = document.getElementById('tooltip-trackers');
+        const tooltipPrevalence = document.getElementById('tooltip-prevalence');
+
+        // Get value range for the current metric
+        function getMetricRange(metric) {
+            if (metric === 'avgTrackers') {
+                return [3.5, 9.5]; // Adjusted range based on data
+            } else {
+                return [0.15, 0.30]; // Range for tracking prevalence
+            }
+        }
+
+        // Get color for a value based on the current metric
+        function getColorForValue(value, metric) {
+            const [min, max] = getMetricRange(metric);
+            const intensity = Math.max(0, Math.min(1, (value - min) / (max - min)));
+
+            if (metric === 'avgTrackers') {
+                // Blue scale for trackers
+                return `rgb(${Math.round(220 - intensity * 200)}, ${Math.round(235 - intensity * 170)}, ${Math.round(255 - intensity * 50)})`;
+            } else {
+                // Red scale for prevalence
+                return `rgb(${Math.round(255 - intensity * 30)}, ${Math.round(240 - intensity * 200)}, ${Math.round(240 - intensity * 200)})`;
+            }
+        }
+
+        // Format value for display
+        function formatValue(value, metric) {
+            if (metric === 'avgTrackedPercent') {
+                return `${(value * 100).toFixed(1)}%`;
+            }
+            return value.toFixed(1);
+        }
+
+        // Update the color scale legend
+        function updateLegend() {
+            // Update legend title
+            legendTitle.textContent = currentMetric === 'avgTrackers'
+                ? 'Average Trackers per Site:'
+                : 'Tracking Prevalence:';
+
+            // Clear previous legend
+            colorScale.innerHTML = '';
+
+            // Create new legend steps
+            const [min, max] = getMetricRange(currentMetric);
+
+            for (let i = 0; i < 5; i++) {
+                const value = min + (i * (max - min) / 4);
+                const colorStep = document.createElement('div');
+                colorStep.className = 'color-step';
+                colorStep.style.backgroundColor = getColorForValue(value, currentMetric);
+                colorStep.textContent = formatValue(value, currentMetric);
+                colorScale.appendChild(colorStep);
+            }
+        }
+
+        // Update the country grid
+        function updateCountryGrid() {
+            // Clear previous grid
+            countryGrid.innerHTML = '';
+
+            // Add country cards
+            countryTrackingData.forEach(country => {
+                const value = currentMetric === 'avgTrackers' ? country.avgTrackers : country.avgTrackedPercent;
+
+                const card = document.createElement('div');
+                card.className = 'country-card';
+                card.style.backgroundColor = getColorForValue(value, currentMetric);
+
+                card.innerHTML = `
+                    <h3 class="country-name">${country.country}</h3>
+                    <div class="country-stat">Sites analyzed: ${country.siteCount}</div>
+                    <div class="country-stat">Avg trackers: ${country.avgTrackers.toFixed(1)}</div>
+                    <div class="country-stat">Tracking prevalence: ${(country.avgTrackedPercent * 100).toFixed(1)}%</div>
+                `;
+
+                // Add hover event listeners
+                card.addEventListener('mouseenter', () => {
+                    hoveredCountry = country;
+                    updateTooltip();
+                });
+
+                card.addEventListener('mouseleave', () => {
+                    hoveredCountry = null;
+                    updateTooltip();
+                });
+
+                countryGrid.appendChild(card);
+            });
+        }
+
+        // Update the tooltip
+        function updateTooltip() {
+            if (hoveredCountry) {
+                tooltipTitle.textContent = hoveredCountry.country;
+                tooltipSites.textContent = hoveredCountry.siteCount;
+                tooltipTrackers.textContent = hoveredCountry.avgTrackers.toFixed(1);
+                tooltipPrevalence.textContent = `${(hoveredCountry.avgTrackedPercent * 100).toFixed(1)}%`;
+                tooltip.style.display = 'block';
+            } else {
+                tooltip.style.display = 'none';
+            }
+        }
+
+        // Add event listener for metric change
+        metricSelect.addEventListener('change', (e) => {
+            currentMetric = e.target.value;
+            updateLegend();
+            updateCountryGrid();
+        });
+
+        // Initialize visualization
+        updateLegend();
+        updateCountryGrid();
+    </script>
+</body>
+</html>
